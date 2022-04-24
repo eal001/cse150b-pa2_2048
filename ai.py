@@ -143,7 +143,7 @@ class AI:
         # print('built tree')
         direction, _ = self.expectimax_ec(self.root)
         # print('minmaxed...')
-        print(direction)
+        # print(direction)
         return direction
 
     def get_adjacent_values(self, i, j):
