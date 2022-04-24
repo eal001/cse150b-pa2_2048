@@ -140,9 +140,9 @@ class AI:
     # TODO (optional): implement method for extra credits
     def compute_decision_ec(self):
         self.build_tree(self.root, self.search_depth + 1)
-        print('built tree')
+        # print('built tree')
         direction, _ = self.expectimax_ec(self.root)
-        print('minmaxed...')
+        # print('minmaxed...')
         print(direction)
         return direction
 
