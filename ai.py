@@ -87,7 +87,7 @@ class AI:
 
                 else: 
                     #its not possible, our state score should be 
-                    state = (self.simulator.current_state()[0], 0)
+                    state = (self.simulator.current_state()[0], -1*INFINITY)
                     child = Node(state, CHANCE_PLAYER)
                     node.children.append(child)
 
@@ -129,5 +129,32 @@ class AI:
 
     # TODO (optional): implement method for extra credits
     def compute_decision_ec(self):
-        return random.randint(0, 3)
+        self.build_tree(self.root, self.search_depth + 1)
+        print('built tree')
+        direction, _ = self.expectimax_ec(self.root)
+        print('minmaxed...')
+        print(direction)
+        return direction
 
+    def expectimax_ec(self, node = None):
+        if node.is_terminal(): 
+            return (None , node.state[1])
+        elif node.player_type == MAX_PLAYER:
+            value = -1*INFINITY
+            oldValue = value
+            idx = -1
+            for i, child in enumerate(node.children): 
+                value = max(value, self.expectimax(child)[1])
+                idx = i if not (value == oldValue) else idx
+                oldValue = value
+                # else do nothing
+            return (idx, value)
+        elif node.player_type == CHANCE_PLAYER:
+            value = 0
+            probability = 1/len(node.children)
+            for child in node.children:
+                value += self.expectimax(child)[1]*probability
+            return (None, value)
+        else:
+            print('error!')
+            error
