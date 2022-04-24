@@ -99,7 +99,7 @@ class AI:
 
                 else: 
                     #its not possible, our state score should be 
-                    state = (self.simulator.current_state()[0], -1*INFINITY)
+                    state = (self.simulator.current_state()[0], 0)
                     child = Node(state, CHANCE_PLAYER)
                     node.children.append(child)
 
