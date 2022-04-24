@@ -136,9 +136,26 @@ class AI:
         print(direction)
         return direction
 
+    def get_adjacent_values(self, i, j):
+        grid_bounds = (len(self.simulator.tile_matrix), len(self.simulator.tile_matrix[0]))
+        adj_indecies = [ (i+direction[0], j+direction[1]) for direction in [(0,1), (1,0), (0,-1), (-1,0)] 
+            if ((i+direction[0] > -1) and (i+direction[0] < grid_bounds[0]) and (j+direction[1] > -1) and (j+direction[1] < grid_bounds[1])) ]
+        
+        vals = [ self.simulator.tile_matrix[index[0]][index[1]] for index in adj_indecies]
+        return vals
+ 
+
     def expectimax_ec(self, node = None):
-        if node.is_terminal(): 
-            return (None , node.state[1])
+        self.get_adjacent_values(0,0)
+        increment = 10
+        nearby_bias = 0
+        if node.is_terminal(): # have a better evaluation of the payoff
+            for i, arr in enumerate(node.state[0]):
+                for j, num in enumerate(arr):
+                    if num in self.get_adjacent_values(i,j):
+                        nearby_bias += increment
+
+            return (None , node.state[1] + nearby_bias)
         elif node.player_type == MAX_PLAYER:
             value = -1*INFINITY
             oldValue = value
