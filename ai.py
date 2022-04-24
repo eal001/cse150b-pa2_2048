@@ -7,13 +7,15 @@ from game import Game
 MOVES = {0: 'up', 1: 'left', 2: 'down', 3: 'right'}
 MAX_PLAYER, CHANCE_PLAYER = 0, 1 
 
+# a good strategy is to snake your largest values together becasue that way they are more likely to merge
+# this weight matrix will be multiplied by tile matrix to achieve a bias at which we should move
 WEIGHTS =   [   # from this, we want the biggest number in the top left, and second biggest to the right, etc
                             16, 15, 14, 13,
                             9, 10, 11, 12,
                             8,  7,  6,  5,
                             1,  2,  3,  4
                         ]
-WEIGHTS = [4**weight for weight in WEIGHTS]
+WEIGHTS = [10*weight for weight in WEIGHTS]
 
 # referenced: http://cs229.stanford.edu/proj2016/report/NieHouAn-AIPlays2048-report.pdf
 
@@ -146,42 +148,27 @@ class AI:
         # print(direction)
         return direction
 
-    def get_adjacent_values(self, i, j):
-        grid_bounds = (len(self.simulator.tile_matrix), len(self.simulator.tile_matrix[0]))
-        print("ADJ INDECES")
-        adj_indecies = [ (i+direction[0], j+direction[1]) for direction in [(0,1), (1,0), (0,-1), (-1,0)] 
-            if ((i+direction[0] > -1) and (i+direction[0] < grid_bounds[0]) and (j+direction[1] > -1) and (j+direction[1] < grid_bounds[1])) ]
-        
-        vals = [ self.simulator.tile_matrix[index[0]][index[1]] for index in adj_indecies]
-        return vals
- 
-    def find_max_tile(self):
-        val = -1
-        for arr in self.simulator.tile_matrix:
-            for num in arr:
-                val = max(val, num)
-        return val
-
-
     def expectimax_ec(self, node = None):
-        if node.is_terminal():
-            # print(weights)
+        # TODO: delete this random choice but make sure the return type of the function is the same
+        # return random.randint(0, 3), 0
+        if node.is_terminal(): 
             i = 0
-            location_bias = 0
-            for arr in self.simulator.tile_matrix:
-                for val in arr:
-                    location_bias = val * WEIGHTS[i]
+            val = 0
+            for arr in node.state[0]:
+                for num in arr:
+                    val += num*WEIGHTS[i]
                     i+=1
-            # empty_bias = 0
-            empty_bias = len(self.simulator.get_open_tiles())*1000
-            return (None , node.state[1] + location_bias + empty_bias)
+            return (None , node.state[1] + val)
         elif node.player_type == MAX_PLAYER:
             value = -1*INFINITY
             oldValue = value
             idx = -1
-            for i, child in enumerate(node.children): 
+            for i, child in enumerate(node.children): # sometimes move children arent actually there ie their directions could be 0,2,3 or 1,2 etc
                 value = max(value, self.expectimax_ec(child)[1])
-                idx = i if not (value == oldValue) else idx
+                if not (value == oldValue):
+                    idx = i
+                    if(i > 2): # prune the right max choice if others are valid bc we dont like it haha
+                        break
                 oldValue = value
                 # else do nothing
             return (idx, value)
@@ -194,61 +181,3 @@ class AI:
         else:
             print('error!')
             error
-
-
-
-    def build_tree_ec(self, node = None, depth = 0):
-        if(node == None):
-            return
-        # base case: depth is 0, we simply return
-        if (depth == 0):
-            return 
-        # recursive case 1: the current node is a chance player -> then the next state will be randomly chosen
-        # we recurse on the 'subtrees' with depth-1 and add those subtrees as children to our current node
-        # finally we return our node with its added children
-        elif node.player_type == CHANCE_PLAYER: # we are evaluating this node as chance player; its children are determined by chance 
-            # initialize board and score from the initial node's state
-            self.simulator.set_state(node.state[0], node.state[1])
-            empty_tiles = self.simulator.get_open_tiles()
-            
-            # what are the children of this node? all of the empty tiles could become a '2' in the next state
-            for tile in empty_tiles:
-                # reset simulator state at the beginning of checking each child
-                self.simulator.set_state(node.state[0], node.state[1])
-                
-                # get the new boardstate
-                (i, j) = tile
-                boardstate = self.simulator.tile_matrix #DEEPCOPY
-                boardstate[i][j] = 2
-                # get the new score
-                simscore = self.simulator.score #DEEPCOPY
-                state = (boardstate, simscore)
-                #create child node
-                child = Node(state , MAX_PLAYER) 
-                # evaluate the child subtree
-                self.build_tree(node=child, depth=depth-1)
-                node.children.append(child)
-        
-        # recursive case 2:  the current node is a max player -> the next state will be based on the max players actions
-        # we will recurse on the chance subtrees with depth-1 and add those subtrees as children to the current node
-        # the next states would be based on the 
-        elif node.player_type == MAX_PLAYER:
-            self.simulator.set_state(node.state[0], node.state[1])
-            # how do we find the next state of the max player 
-            
-            for direction in MOVES:
-                # reset to parent state for every iteration
-                self.simulator.set_state(node.state[0], node.state[1])
-                # try to move 
-                if self.simulator.move(direction):
-                    # if possible set child's state to the moved state
-                    state = self.simulator.current_state() # DEEPCOPY
-                    child = Node(state, CHANCE_PLAYER)
-                    self.build_tree(node=child, depth=depth-1)
-                    node.children.append(child)
-
-                else: 
-                    #its not possible, our state score should be 
-                    state = (self.simulator.current_state()[0], -1*INFINITY)
-                    child = Node(state, CHANCE_PLAYER)
-                    node.children.append(child)
